@@ -257,6 +257,10 @@
       "required": false,
       "types": [
         {
+          "type": "break_statement",
+          "named": true
+        },
+        {
           "type": "class_definition",
           "named": true
         },
@@ -313,6 +317,11 @@
   },
   {
     "type": "bool",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "break_statement",
     "named": true,
     "fields": {}
   },
@@ -1956,6 +1965,10 @@
       "required": false,
       "types": [
         {
+          "type": "break_statement",
+          "named": true
+        },
+        {
           "type": "class_definition",
           "named": true
         },
@@ -2544,6 +2557,10 @@
   },
   {
     "type": "bool",
+    "named": false
+  },
+  {
+    "type": "break",
     "named": false
   },
   {

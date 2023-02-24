@@ -221,6 +221,10 @@
         {
           "type": "SYMBOL",
           "name": "try_catch_statement"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "break_statement"
         }
       ]
     },
@@ -1151,6 +1155,19 @@
               "type": "BLANK"
             }
           ]
+        }
+      ]
+    },
+    "break_statement": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "break"
+        },
+        {
+          "type": "STRING",
+          "value": ";"
         }
       ]
     },

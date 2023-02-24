@@ -79,6 +79,7 @@ module.exports = grammar({
         $.struct_definition,
         $.enum_definition,
         $.try_catch_statement,
+        $.break_statement,
       ),
 
     short_import_statement: ($) =>
@@ -235,6 +236,8 @@ module.exports = grammar({
         )),
         optional(seq("finally", field("finally_block", $.block)))
       ),
+
+    break_statement: ($) => seq("break", ";"),
 
     expression: ($) =>
       choice(
