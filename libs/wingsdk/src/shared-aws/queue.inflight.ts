@@ -4,8 +4,9 @@ import {
   PurgeQueueCommand,
   GetQueueAttributesCommand,
   ReceiveMessageCommand,
+  DeleteMessageCommand,
 } from "@aws-sdk/client-sqs";
-import { IQueueClient } from "../cloud";
+import { IQueueClient, PoppedMessage } from "../cloud";
 
 export class QueueClient implements IQueueClient {
   constructor(
@@ -37,7 +38,7 @@ export class QueueClient implements IQueueClient {
     return Number.parseInt(data.Attributes?.ApproximateNumberOfMessages ?? "0");
   }
 
-  public async pop(): Promise<string | undefined> {
+  public async pop(): Promise<PoppedMessage | undefined> {
     const command = new ReceiveMessageCommand({
       QueueUrl: this.queueUrl,
       MaxNumberOfMessages: 1,
@@ -46,6 +47,25 @@ export class QueueClient implements IQueueClient {
     if (!data.Messages) {
       return undefined;
     }
-    return data.Messages[0].Body;
+
+    const message = data.Messages[0];
+    // For some reason, all fields of a Message object are optional.
+    // Though, for example, a message body is required when sending.
+    // Hence, receipt handle must be existent for a received message.
+    return {
+      message: message.Body || "",
+      ack: async () => this.delete(message.ReceiptHandle),
+    };
+  }
+
+  private async delete(receiptHandle?: string): Promise<void> {
+    if (!receiptHandle) {
+      return;
+    }
+    const command = new DeleteMessageCommand({
+      QueueUrl: this.queueUrl,
+      ReceiptHandle: receiptHandle,
+    });
+    await this.client.send(command);
   }
 }

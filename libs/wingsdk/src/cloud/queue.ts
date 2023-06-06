@@ -114,7 +114,13 @@ export interface IQueueClient {
    * @returns The message, or `nil` if the queue is empty.
    * @inflight
    */
-  pop(): Promise<string | undefined>;
+  pop(): Promise<PoppedMessage | undefined>;
+}
+
+// TODO: add docs
+export interface PoppedMessage {
+  readonly message: string;
+  ack(): Promise<void>;
 }
 
 /**

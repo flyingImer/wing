@@ -7,7 +7,12 @@ import {
   EventSubscription,
   FunctionHandle,
 } from "./schema-resources";
-import { IFunctionClient, IQueueClient, TraceType } from "../cloud";
+import {
+  IFunctionClient,
+  IQueueClient,
+  PoppedMessage,
+  TraceType,
+} from "../cloud";
 import {
   ISimulatorContext,
   ISimulatorResourceInstance,
@@ -22,6 +27,7 @@ export class Queue
   private readonly context: ISimulatorContext;
   private readonly timeout: number;
   private readonly retentionPeriod: number;
+  private readonly messagesNotVisible = new Set<QueueMessage>();
 
   constructor(props: QueueSchema["props"], context: ISimulatorContext) {
     if (props.initialMessages) {
@@ -72,6 +78,7 @@ export class Queue
       message: `Purge ().`,
       activity: async () => {
         this.messages.length = 0;
+        this.messagesNotVisible.clear();
       },
     });
   }
@@ -85,12 +92,39 @@ export class Queue
     });
   }
 
-  public async pop(): Promise<string | undefined> {
+  public async pop(): Promise<PoppedMessage | undefined> {
     return this.context.withTrace({
       message: `Pop ().`,
       activity: async () => {
         const message = this.messages.shift();
-        return message?.payload;
+        if (!message) {
+          return undefined;
+        }
+
+        this.messagesNotVisible.add(message);
+        void this.pushMessagesBackToQueue([message]).then(() =>
+          this.messagesNotVisible.delete(message)
+        );
+
+        const popped: PoppedMessage = {
+          message: message.payload,
+          ack: async () => this.delete(message),
+        };
+        return popped;
+      },
+    });
+  }
+
+  private async delete(message: QueueMessage): Promise<void> {
+    return this.context.withTrace({
+      message: `Delete ().`,
+      activity: async () => {
+        // The message may be not visible so try to remove it on both sides.
+        this.messagesNotVisible.delete(message);
+        const index = this.messages.indexOf(message);
+        if (index >= 0) {
+          this.messages.splice(index, 1);
+        }
       },
     });
   }
@@ -124,6 +158,9 @@ export class Queue
           sourceType: QUEUE_TYPE,
           timestamp: new Date().toISOString(),
         });
+
+        // TODO: integrate with the not visible set
+        // e.g. should we push back messages that is timed out but not yet done with the function?
         void fnClient
           .invoke(JSON.stringify({ messages: messagesPayload }))
           .catch((err) => {
